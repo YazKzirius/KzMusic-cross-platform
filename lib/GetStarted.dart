@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import "package:kzmusic_cross_platform/SpotifyAuthManager.dart";
 
 class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
@@ -15,6 +16,8 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
     // When the button is pressed, show the loading spinner.
     setState(() {
       _isLoading = true;
+      SpotifyAuthManager().login();
+      print('Button pressed!');
     });
 
     // In a real app, you would perform an action here, like navigating
