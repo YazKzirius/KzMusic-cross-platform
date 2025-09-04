@@ -1,5 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:io'; // 1. Import dart:io to check the operating system.
+import 'package:flutter/foundation.dart' show kIsWeb; // To check for web
 import "package:kzmusic_cross_platform/SpotifyAuthManager.dart";
+import 'package:kzmusic_cross_platform/MainPage.dart';
 
 class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
@@ -14,12 +18,22 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
 
   void _handleGetStarted() {
     // When the button is pressed, show the loading spinner.
-    setState(() {
-      _isLoading = true;
-      SpotifyAuthManager().login();
-      print('Button pressed!');
-    });
-
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
+      setState(() {
+        _isLoading = true;
+        print('Button pressed!');
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
+      });
+    } else {
+      setState(() {
+        _isLoading = true;
+        SpotifyAuthManager().login();
+        print('Button pressed!');
+      });
+    }
     // In a real app, you would perform an action here, like navigating
     // to a new screen or fetching data. For this example, we'll just
     // pretend to load for 2 seconds.
@@ -32,7 +46,6 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
       }
     });
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(

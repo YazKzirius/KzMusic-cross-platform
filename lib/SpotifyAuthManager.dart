@@ -72,6 +72,7 @@ class SpotifyAuthManager {
     }
   }
 
+  // In the _exchangeCodeForToken method...
   Future<void> _exchangeCodeForToken(String code) async {
     final Uri tokenUrl = Uri.parse('https://accounts.spotify.com/api/token');
     final String basicAuth =
@@ -95,7 +96,9 @@ class SpotifyAuthManager {
       final String accessToken = body['access_token'];
       _logger.i('🎉🎉🎉 Access Token Received! 🎉🎉🎉\n$accessToken');
     } else {
-      _logger.e('🚨 Failed to get access token. Status: ${response.statusCode}\nResponse Body: ${response.body}');
+      _logger.e('🚨🚨🚨 FAILED TO GET ACCESS TOKEN 🚨🚨🚨');
+      _logger.e('Status Code: ${response.statusCode}');
+      _logger.e('Response Body: ${response.body}');
     }
   }
 
