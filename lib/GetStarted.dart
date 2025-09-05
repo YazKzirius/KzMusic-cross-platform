@@ -1,9 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'dart:io'; // 1. Import dart:io to check the operating system.
-import 'package:flutter/foundation.dart' show kIsWeb; // To check for web
-import "package:kzmusic_cross_platform/SpotifyAuthManager.dart";
-import 'package:kzmusic_cross_platform/MainPage.dart';
+import 'package:kzmusic_cross_platform/SpotifyAuthManager.dart';
+import 'package:logger/logger.dart'; // Import logger
+import 'package:uni_links/uni_links.dart';
 
 class GetStartedScreen extends StatefulWidget {
   const GetStartedScreen({super.key});
@@ -13,38 +14,63 @@ class GetStartedScreen extends StatefulWidget {
 }
 
 class _GetStartedScreenState extends State<GetStartedScreen> {
-  // State variable to control the visibility of the loading spinner.
+  final SpotifyAuthManager _authManager = SpotifyAuthManager();
+  final Logger _logger = Logger();
+  StreamSubscription? _sub;
   bool _isLoading = false;
 
-  void _handleGetStarted() {
-    // When the button is pressed, show the loading spinner.
-    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS)) {
-      setState(() {
-        _isLoading = true;
-        print('Button pressed!');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
-      });
-    } else {
-      setState(() {
-        _isLoading = true;
-        SpotifyAuthManager().login();
-        print('Button pressed!');
-      });
+  @override
+  void initState() {
+    super.initState();
+    // This check ensures the listener only runs on desktop platforms
+    if (!kIsWeb && (Platform.isWindows || Platform.isMacOS || Platform.isLinux)) {
+      _initUniLinks();
     }
-    // In a real app, you would perform an action here, like navigating
-    // to a new screen or fetching data. For this example, we'll just
-    // pretend to load for 2 seconds.
-    Future.delayed(const Duration(seconds: 2), () {
-      // After the task is done, hide the spinner.
-      if (mounted) { // Check if the widget is still in the tree.
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
+
+  /// Sets up the listener that will "catch" the Spotify redirect on desktop.
+  /// THIS IS THE CODE THAT IS CURRENTLY FAILING TO START BECAUSE OF THE NATIVE CRASH.
+  Future<void> _initUniLinks() async {
+    _sub = uriLinkStream.listen((Uri? uri) async {
+      if (uri != null && mounted) {
+        _logger.i("✅ Desktop redirect received by app: $uri");
         setState(() {
-          _isLoading = false;
+          _isLoading = true;
         });
+
+        await _authManager.handleRedirect(uri);
+
+        // After the token is received, this logic will finally execute.
+        if (_authManager.accessToken != null) {
+          _logger.i("✅ Auth creds received on desktop! Navigating to main page...");
+          if (mounted) {
+            Navigator.pushReplacementNamed(context, '/main');
+          }
+        } else {
+          _logger.e("⛔️ Failed to get auth creds after desktop redirect.");
+          if (mounted) {
+            setState(() { _isLoading = false; });
+          }
+        }
       }
+    }, onError: (err) {
+      _logger.e("⛔️ uni_links listener error: $err");
+      if (mounted) { setState(() { _isLoading = false; }); }
     });
+  }
+
+  void _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+    // This launches the browser. The app then waits for the _initUniLinks listener to fire.
+    await _authManager.login();
   }
   @override
   Widget build(BuildContext context) {
@@ -72,7 +98,7 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                   width: double.infinity, // Makes the button stretch
                   height: 56.0,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleGetStarted,
+                    onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFF6200EE), // Equivalent to @color/purple
                       shape: RoundedRectangleBorder(

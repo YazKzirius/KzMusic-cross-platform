@@ -38,6 +38,7 @@ dependencies:
   firebase_core: ^4.1.0
   spotify_sdk: ^3.0.2
   url_strategy: ^0.2.0
+  uni_links: ^0.5.1
   http: ^1.2.1
 
 dev_dependencies:
